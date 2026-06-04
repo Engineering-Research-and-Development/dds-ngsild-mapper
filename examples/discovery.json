@@ -1,0 +1,55 @@
+{
+  "topics": [
+    {
+      "name": "rt/cmd_vel",
+      "typeName": "geometry_msgs/msg/Twist",
+      "qos": { "durability": "TRANSIENT_LOCAL", "history-depth": 1 }
+    },
+    {
+      "name": "rt/pose",
+      "typeName": "geometry_msgs/msg/PoseStamped",
+      "qos": { "durability": "TRANSIENT_LOCAL", "history-depth": 10 }
+    },
+    {
+      "name": "rt/battery_state",
+      "typeName": "sensor_msgs/msg/BatteryState",
+      "qos": { "durability": "VOLATILE", "history-depth": 1 }
+    },
+    {
+      "name": "rt/scan",
+      "typeName": "sensor_msgs/msg/LaserScan",
+      "qos": { "durability": "VOLATILE", "history-depth": 1 }
+    },
+    {
+      "name": "rt/debug/log",
+      "typeName": "rcl_interfaces/msg/Log",
+      "qos": { "durability": "VOLATILE", "history-depth": 10 }
+    }
+  ],
+  "services": [
+    {
+      "name": "set_bool",
+      "requestType": "std_srvs/srv/SetBool_Request",
+      "replyType":   "std_srvs/srv/SetBool_Response"
+    },
+    {
+      "name": "get_state",
+      "requestType": "lifecycle_msgs/srv/GetState_Request",
+      "replyType":   "lifecycle_msgs/srv/GetState_Response"
+    }
+  ],
+  "actions": [
+    {
+      "name": "navigate_to_pose",
+      "goalType":     "nav2_msgs/action/NavigateToPose_SendGoal_Request",
+      "feedbackType": "nav2_msgs/action/NavigateToPose_FeedbackMessage",
+      "resultType":   "nav2_msgs/action/NavigateToPose_GetResult_Response"
+    },
+    {
+      "name": "spin",
+      "goalType":     "nav2_msgs/action/Spin_SendGoal_Request",
+      "feedbackType": "nav2_msgs/action/Spin_FeedbackMessage",
+      "resultType":   "nav2_msgs/action/Spin_GetResult_Response"
+    }
+  ]
+}

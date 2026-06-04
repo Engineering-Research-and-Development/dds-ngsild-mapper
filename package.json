@@ -1,0 +1,20 @@
+{
+  "name": "dds-ngsi-mapper",
+  "version": "1.0.0",
+  "description": "DDS discovery to NGSI-LD mapping tool — generates dds-config.json and context.jsonld for Orion-LD",
+  "main": "src/index.js",
+  "bin": {
+    "dds-ngsi-mapper": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "example": "node src/index.js --input examples/discovery.json --auto"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
