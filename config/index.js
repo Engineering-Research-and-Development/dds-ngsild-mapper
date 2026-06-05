@@ -1,14 +1,14 @@
 module.exports = {
   discovery: {
-    url:       process.env.DDS_DISCOVERY_URL            || null,
-    localFile: process.env.DDS_DISCOVERY_FILE           || null,
-    timeoutMs: process.env.DDS_DISCOVERY_TIMEOUT_MS     || 10000,
+    url:       process.env.DDS_DISCOVERY_URL                        || null,
+    localFile: process.env.DDS_DISCOVERY_FILE                       || null,
+    timeoutMs: Number(process.env.DDS_DISCOVERY_TIMEOUT_MS)         || 10000,
   },
 
   dds: {
-    domain:      process.env.DDS_DOMAIN                 || 0,
-    typesDir:    process.env.DDS_TYPES_DIR              || '/opt/dds/types',
-    syncTimeout: process.env.DDS_SYNC_TIMEOUT_MS        || 5000,
+    domain:      Number(process.env.DDS_DOMAIN)                     || 0,
+    typesDir:    process.env.DDS_TYPES_DIR                          || '/opt/dds/types',
+    syncTimeout: Number(process.env.DDS_SYNC_TIMEOUT_MS)            || 5000,
   },
 
   ngsi: {
