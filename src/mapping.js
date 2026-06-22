@@ -115,4 +115,4 @@ function makeDefaultDdsmodule(settings) {
   };
 }
 
-module.exports = { buildMapping, applyAutoDefaults, cleanName };
+module.exports = { buildMapping, applyAutoDefaults, cleanName, makeDefaultDdsmodule };

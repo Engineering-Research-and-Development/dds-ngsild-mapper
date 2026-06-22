@@ -8,10 +8,12 @@
   },
   "scripts": {
     "start": "node src/index.js",
+    "web": "node src/server.js",
     "example": "node src/index.js --input examples/discovery.json --auto"
   },
   "dependencies": {
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "ws": "^8.21.0"
   },
   "engines": {
     "node": ">=18"

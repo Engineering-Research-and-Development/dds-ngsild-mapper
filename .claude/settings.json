@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(rm -f out/snap-config.json out/snap-context.jsonld)",
+      "Bash(WEB_PORT=3577 node src/server.js)",
+      "Bash(curl -s http://localhost:3577/api/config)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s http://localhost:3577/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\\\\n\" http://localhost:3577/app.js)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3577/../config/index.js\")",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/api/config)",
+      "PowerShell(Start-Process \"http://localhost:3000\")",
+      "PowerShell(\"Browser aperto su http://localhost:3000\")",
+      "Bash(node --check web/app.js)",
+      "Bash(node --check src/server.js)"
+    ]
+  }
+}

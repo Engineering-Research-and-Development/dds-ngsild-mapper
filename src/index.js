@@ -23,7 +23,14 @@ USAGE
 
 DISCOVERY SOURCE  (CLI > DDS_DISCOVERY_FILE > DDS_DISCOVERY_URL)
   -i, --input <file>       Local DDS discovery inventory JSON file
-  --discovery-url <url>    HTTP URL of the DDS Enabler discovery endpoint
+  --discovery-url <url>    Discovery endpoint URL (http://, https://, ws:// or wss://)
+
+WEBSOCKET DISCOVERY  (only when --discovery-url is ws:// or wss://)
+  --ws-quiet <ms>          Flush after this much silence following the first frame
+                           [env: DDS_DISCOVERY_WS_QUIET_MS, default 1000]
+  --ws-subscribe <msg>     Message sent on connect (e.g. a subscribe/start request)
+                           [env: DDS_DISCOVERY_WS_SUBSCRIBE]
+  --ws-verbose             Log every raw frame received  [env: DDS_DISCOVERY_WS_VERBOSE]
 
 ROUND-TRIP EDITING
   --config <file>          Load an existing output config to edit
@@ -53,6 +60,9 @@ EXAMPLES
   # Override discovery URL at runtime
   dds-ngsi-mapper --discovery-url http://localhost:8080/api/discovery --auto
 
+  # Live discovery over WebSocket (streamed topic/service/action frames)
+  dds-ngsi-mapper --discovery-url ws://localhost:8080/api/discovery --auto
+
   # Use a local snapshot instead of live discovery
   dds-ngsi-mapper --input examples/discovery.json --auto
 
@@ -68,6 +78,9 @@ function parseCli() {
     options: {
       input:           { type: 'string',  short: 'i' },
       'discovery-url': { type: 'string' },
+      'ws-quiet':      { type: 'string' },
+      'ws-subscribe':  { type: 'string' },
+      'ws-verbose':    { type: 'boolean', default: false },
       config:          { type: 'string' },
       context:         { type: 'string' },
       'out-config':    { type: 'string' },
@@ -91,6 +104,15 @@ function buildSettings(cli) {
     discoveryUrl:     cli['discovery-url'] || cfg.discovery.url,
     discoveryFile:    cli.input            || cfg.discovery.localFile,
     discoveryTimeout: cfg.discovery.timeoutMs,
+
+    // WebSocket discovery options (CLI overrides .env)
+    discoveryWs: {
+      quietWindowMs:    cli['ws-quiet'] ? parseInt(cli['ws-quiet'], 10) : cfg.discovery.ws.quietWindowMs,
+      subscribe:        cli['ws-subscribe'] || cfg.discovery.ws.subscribe,
+      settleOnSnapshot: cfg.discovery.ws.settleOnSnapshot,
+      verbose:          cli['ws-verbose'] || cfg.discovery.ws.verbose,
+      headers:          cfg.discovery.ws.headers,
+    },
 
     domain:      cli.domain       ? parseInt(cli.domain, 10)       : cfg.dds.domain,
     typesDir:    cli['types-dir']  || cfg.dds.typesDir,
@@ -126,8 +148,13 @@ async function main() {
     console.log(`Discovery source: file  → ${settings.discoveryFile}`);
     discovery = await loadDiscovery({ filePath: settings.discoveryFile });
   } else if (settings.discoveryUrl) {
-    console.log(`Discovery source: HTTP  → ${settings.discoveryUrl}`);
-    discovery = await loadDiscovery({ url: settings.discoveryUrl, timeoutMs: settings.discoveryTimeout });
+    const isWs = /^wss?:/i.test(settings.discoveryUrl);
+    console.log(`Discovery source: ${isWs ? 'WebSocket' : 'HTTP'}  → ${settings.discoveryUrl}`);
+    discovery = await loadDiscovery({
+      url:       settings.discoveryUrl,
+      timeoutMs: settings.discoveryTimeout,
+      ws:        settings.discoveryWs,
+    });
   } else if (!cli.config) {
     console.error(
       'Error: no discovery source.\n' +

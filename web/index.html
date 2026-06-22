@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DDS → NGSI-LD Mapper · ARISE</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>DDS&nbsp;→&nbsp;NGSI-LD&nbsp;Mapper</h1>
+      <span class="subtitle">Choose what to map and into which type, with initial suggestions</span>
+    </div>
+    <a class="project-badge" href="https://www.arise-middleware.eu/" target="_blank" rel="noopener">
+      <span class="project-tag">ARISE</span>
+      <span class="project-note">European Project</span>
+    </a>
+  </header>
+
+  <main>
+    <!-- ── 1. Discovery source ────────────────────────────────────────────── -->
+    <section class="card" id="source-card">
+      <h2>1 · Discovery source</h2>
+      <div class="source-tabs" role="tablist">
+        <button class="tab active" data-source="url">Backend URL</button>
+        <button class="tab" data-source="file">Upload file</button>
+        <button class="tab" data-source="paste">Paste JSON</button>
+      </div>
+
+      <div class="source-pane" data-pane="url">
+        <label>Discovery URL
+          <input type="text" id="src-url" placeholder="http://localhost:8080/api/discovery (http/https/ws/wss)" />
+        </label>
+      </div>
+      <div class="source-pane hidden" data-pane="file">
+        <label>Discovery JSON file
+          <input type="file" id="src-file" accept=".json,application/json" />
+        </label>
+      </div>
+      <div class="source-pane hidden" data-pane="paste">
+        <label>Discovery inventory (JSON)
+          <textarea id="src-paste" rows="6" placeholder='{ "topics": [...], "services": [...], "actions": [...] }'></textarea>
+        </label>
+      </div>
+
+      <div class="mode-row">
+        <span class="mode-label">Mapping mode:</span>
+        <label class="radio"><input type="radio" name="map-mode" value="interactive" checked /> Interactive</label>
+        <label class="radio"><input type="radio" name="map-mode" value="auto" /> Automatic</label>
+        <span class="mode-hint" id="mode-hint">Review and edit each entry before generating.</span>
+      </div>
+
+      <div class="actions-row">
+        <button id="btn-load" class="primary">Load discovery</button>
+        <span id="load-status" class="status"></span>
+      </div>
+    </section>
+
+    <!-- ── 2. Global settings ─────────────────────────────────────────────── -->
+    <section class="card" id="settings-card">
+      <h2 class="collapsible" id="settings-toggle">2 · Global settings <span class="chevron">▾</span></h2>
+      <div class="settings-grid" id="settings-grid">
+        <label>IRI base
+          <input type="text" id="set-iriBase" />
+        </label>
+        <label>@context URI (-duc)
+          <input type="text" id="set-contextUri" />
+        </label>
+        <label>DDS domain
+          <input type="number" id="set-domain" min="0" />
+        </label>
+        <label>Types directory
+          <input type="text" id="set-typesDir" />
+        </label>
+        <label>Sync timeout (ms)
+          <input type="number" id="set-syncTimeout" min="0" />
+        </label>
+        <label>Output config
+          <input type="text" id="set-outConfig" />
+        </label>
+        <label>Output @context
+          <input type="text" id="set-outContext" />
+        </label>
+      </div>
+    </section>
+
+    <!-- ── 3. Mapping tables ──────────────────────────────────────────────── -->
+    <section class="card hidden" id="mapping-card">
+      <h2>3 · Mapping</h2>
+      <p class="hint">
+        For each entry choose an action and, if you map it, review <strong>entityType</strong>,
+        <strong>entityId</strong> and <strong>attribute</strong>. Values are pre-filled with
+        suggestions; <span class="reset-hint">↺</span> restores the suggested value.
+      </p>
+
+      <div class="bulk-row">
+        <span>Bulk action:</span>
+        <button class="ghost" data-bulk="map">Map all</button>
+        <button class="ghost" data-bulk="skip">Skip all</button>
+        <button class="ghost" data-bulk="blocklist">Blocklist all</button>
+      </div>
+
+      <div id="tables"></div>
+    </section>
+
+    <!-- ── 4. Generate & output ───────────────────────────────────────────── -->
+    <section class="card hidden" id="output-card">
+      <h2>4 · Generate output</h2>
+      <div class="actions-row">
+        <button id="btn-generate" class="primary">Generate preview</button>
+        <label class="inline-check"><input type="checkbox" id="opt-write" /> Also save to disk (out/)</label>
+        <span id="gen-status" class="status"></span>
+      </div>
+
+      <div id="errors" class="errors hidden"></div>
+
+      <div class="output-grid hidden" id="output-grid">
+        <div class="output-col">
+          <div class="output-head">
+            <h3>dds-config.json</h3>
+            <div>
+              <button class="ghost small" data-copy="config">Copy</button>
+              <button class="ghost small" data-download="config">Download</button>
+            </div>
+          </div>
+          <pre id="out-config"></pre>
+        </div>
+        <div class="output-col">
+          <div class="output-head">
+            <h3>dds-context.jsonld</h3>
+            <div>
+              <button class="ghost small" data-copy="context">Copy</button>
+              <button class="ghost small" data-download="context">Download</button>
+            </div>
+          </div>
+          <pre id="out-context"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="sitefoot">
+    Developed within the <a href="https://www.arise-middleware.eu/" target="_blank" rel="noopener">ARISE</a>
+    European project — DDS discovery to NGSI-LD mapping for Orion-LD.
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
