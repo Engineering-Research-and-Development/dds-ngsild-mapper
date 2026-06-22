@@ -58,7 +58,54 @@ function loadFromFile(filePath) {
 
 // ─── Transport dispatch (http/https vs ws/wss) ──────────────────────────────────
 
+function normalizeDiscoveryUrl(url) {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch (e) {
+    throw new Error(`Invalid discovery URL "${url}": ${e.message}`);
+  }
+
+  if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
+    if (parsedUrl.pathname === '' || parsedUrl.pathname === '/') {
+      parsedUrl.pathname = '/api/discovery';
+    }
+    return parsedUrl.toString();
+  }
+
+  if (parsedUrl.protocol === 'ws:' || parsedUrl.protocol === 'wss:') {
+    return url;
+  }
+
+  throw new Error(
+    `Protocol "${parsedUrl.protocol}" not supported. Expected http:, https:, ws:, or wss:`
+  );
+}
+
 function fetchFromUrl(url, timeoutMs, ws = {}) {
+  let normalizedUrl;
+  let parsedUrl;
+  try {
+    normalizedUrl = normalizeDiscoveryUrl(url);
+    parsedUrl = new URL(normalizedUrl);
+  } catch (e) {
+    return Promise.reject(e);
+  }
+
+  if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
+    return fetchFromHttp(normalizedUrl, timeoutMs);
+  }
+
+  if (parsedUrl.protocol === 'ws:' || parsedUrl.protocol === 'wss:') {
+    return fetchFromWebSocket(normalizedUrl, timeoutMs, ws);
+  }
+
+  return Promise.reject(
+    new Error(`Protocol "${parsedUrl.protocol}" not supported. Expected http:, https:, ws:, or wss:`)
+  );
+}
+
+/* function fetchFromUrl(url, timeoutMs, ws = {}) {
   let parsedUrl;
   try {
     parsedUrl = new URL(url);
@@ -77,7 +124,7 @@ function fetchFromUrl(url, timeoutMs, ws = {}) {
   return Promise.reject(
     new Error(`Protocol "${parsedUrl.protocol}" not supported. Expected http:, https:, ws:, or wss:`)
   );
-}
+} */
 
 // ─── HTTP fetch (no external deps — uses Node built-in http/https) ──────────────
 
