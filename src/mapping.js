@@ -15,6 +15,22 @@ function cleanName(ddsName) {
 }
 
 /**
+ * True when a topic carries ROS 2 logging output rather than application data —
+ * i.e. the `/rosout` topic or any `rcl_interfaces/msg/Log` payload. These are the
+ * noisy "Publishing: '…'" frames that otherwise get persisted into Orion-LD, so by
+ * default they are auto-blocklisted (see settings.autoBlocklistLogs).
+ */
+function isLogTopic(kind, item) {
+  if (kind !== 'topic' || !item) return false;
+  const type = String(item.typeName || '').toLowerCase().replace(/::/g, '/');
+  const leaf = type.split('/').pop() || '';
+  const isLogType = type.includes('rcl_interfaces') && (leaf === 'log' || leaf === 'log_');
+  const name = String(item.name || '').toLowerCase().replace(/^rt\//, '');
+  const isRosout = name === 'rosout' || name.endsWith('/rosout');
+  return isLogType || isRosout;
+}
+
+/**
  * Builds the full editor state from:
  *   - discovered DDS items (topics / services / actions)
  *   - an existing config+context loaded for round-trip editing
@@ -29,14 +45,14 @@ function buildMapping(discovery, existing, settings) {
     settings,
     ddsmodule: existing.ddsmodule || makeDefaultDdsmodule(settings),
     rows: {
-      topics:   buildRows('topic',   discovery.topics,   existingTopics),
-      services: buildRows('service', discovery.services, existingServices),
-      actions:  buildRows('action',  discovery.actions,  existingActions),
+      topics:   buildRows('topic',   discovery.topics,   existingTopics,   settings),
+      services: buildRows('service', discovery.services, existingServices, settings),
+      actions:  buildRows('action',  discovery.actions,  existingActions,  settings),
     },
   };
 }
 
-function buildRows(kind, discoveredItems, existingMappings) {
+function buildRows(kind, discoveredItems, existingMappings, settings) {
   const rows = [];
   const seen = new Set();
 
@@ -44,7 +60,7 @@ function buildRows(kind, discoveredItems, existingMappings) {
   for (const item of discoveredItems) {
     seen.add(item.name);
     const existing = existingMappings[item.name] || null;
-    rows.push(makeRow(kind, item, existing));
+    rows.push(makeRow(kind, item, existing, settings));
   }
 
   // Items only in the existing config (e.g. stale entries not in current discovery)
@@ -54,6 +70,7 @@ function buildRows(kind, discoveredItems, existingMappings) {
       kind,
       ddsName: name,
       ddsTypeInfo: '(not in current discovery)',
+      isLog: isLogTopic(kind, { name }),
       mapped: true,
       blocklisted: false,
       entityId:   mapping.entityId,
@@ -65,14 +82,18 @@ function buildRows(kind, discoveredItems, existingMappings) {
   return rows;
 }
 
-function makeRow(kind, item, existingMapping) {
+function makeRow(kind, item, existingMapping, settings) {
   const defaultAttr = cleanName(item.name);
+  const isLog  = isLogTopic(kind, item);
+  // Auto-blocklist log topics that don't already carry an explicit (round-trip) mapping.
+  const autoBlocklist = isLog && !existingMapping && !!(settings && settings.autoBlocklistLogs);
   return {
     kind,
     ddsName:     item.name,
     ddsTypeInfo: typeInfo(kind, item),
+    isLog,
     mapped:      !!existingMapping,
-    blocklisted: false,
+    blocklisted: autoBlocklist,
     entityId:    (existingMapping && existingMapping.entityId)   || DEFAULT_ENTITY_ID,
     entityType:  (existingMapping && existingMapping.entityType) || DEFAULT_ENTITY_TYPE,
     attribute:   (existingMapping && existingMapping.attribute)  || defaultAttr,
@@ -115,4 +136,4 @@ function makeDefaultDdsmodule(settings) {
   };
 }
 
-module.exports = { buildMapping, applyAutoDefaults, cleanName, makeDefaultDdsmodule };
+module.exports = { buildMapping, applyAutoDefaults, cleanName, makeDefaultDdsmodule, isLogTopic };

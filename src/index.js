@@ -51,6 +51,8 @@ DDS
 
 BEHAVIOUR
   --auto                   Auto-map all with defaults, skip prompts  [env: MAPPER_MODE=auto]
+  --keep-logs              Do NOT auto-blocklist ROS 2 log topics (/rosout,
+                           rcl_interfaces/msg/Log)  [env: AUTO_BLOCKLIST_LOGS=false]
   -h, --help               Show this help
 
 EXAMPLES
@@ -91,6 +93,7 @@ function parseCli() {
       'types-dir':     { type: 'string' },
       'sync-timeout':  { type: 'string' },
       auto:            { type: 'boolean', default: false },
+      'keep-logs':     { type: 'boolean', default: false },
       help:            { type: 'boolean', short: 'h', default: false },
     },
     allowPositionals: false,
@@ -125,6 +128,7 @@ function buildSettings(cli) {
     outContext: cli['out-context'] || cfg.output.contextFile,
 
     auto: cli.auto || cfg.mode === 'auto',
+    autoBlocklistLogs: cli['keep-logs'] ? false : cfg.autoBlocklistLogs,
   };
 }
 

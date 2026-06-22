@@ -51,6 +51,13 @@
         <span class="mode-hint" id="mode-hint">Review and edit each entry before generating.</span>
       </div>
 
+      <div class="mode-row">
+        <label class="inline-check">
+          <input type="checkbox" id="opt-blocklist-logs" checked />
+          Auto-blocklist log topics (<code>/rosout</code>, <code>rcl_interfaces/msg/Log</code>)
+        </label>
+      </div>
+
       <div class="actions-row">
         <button id="btn-load" class="primary">Load discovery</button>
         <span id="load-status" class="status"></span>

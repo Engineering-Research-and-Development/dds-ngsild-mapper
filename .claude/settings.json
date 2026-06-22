@@ -16,7 +16,8 @@
       "PowerShell(Start-Process \"http://localhost:3000\")",
       "PowerShell(\"Browser aperto su http://localhost:3000\")",
       "Bash(node --check web/app.js)",
-      "Bash(node --check src/server.js)"
+      "Bash(node --check src/server.js)",
+      "PowerShell($conns = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($conns\\) { $conns.OwningProcess | Select-Object -Unique | ForEach-Object { Write-Host \"Killing PID $_\"; Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } } else { Write-Host \"nothing on :3000\" })"
     ]
   }
 }

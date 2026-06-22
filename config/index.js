@@ -46,5 +46,8 @@ module.exports = {
     port: Number(process.env.WEB_PORT)                  || 3000,
   },
 
+  // Auto-blocklist ROS 2 log topics (/rosout, rcl_interfaces/msg/Log). Default: true.
+  autoBlocklistLogs: process.env.AUTO_BLOCKLIST_LOGS    !== 'false',
+
   mode: process.env.MAPPER_MODE                         || 'interactive',
 };

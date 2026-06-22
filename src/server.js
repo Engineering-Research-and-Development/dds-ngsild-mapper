@@ -30,6 +30,7 @@ function defaultSettings() {
     syncTimeout:   cfg.dds.syncTimeout,
     outConfig:     cfg.output.configFile,
     outContext:    cfg.output.contextFile,
+    autoBlocklistLogs: cfg.autoBlocklistLogs,
     ws:            cfg.discovery.ws,
   };
 }
@@ -45,9 +46,11 @@ function buildRowsForUi(discovery, settings) {
       kind:        singular(kind),
       ddsName:     row.ddsName,
       ddsTypeInfo: row.ddsTypeInfo,
-      // Start every row "mapped" with the suggested values so the UI is productive;
-      // the operator switches an entry to skip/blocklist or edits the fields freely.
-      action:      'map',                              // 'map' | 'skip' | 'blocklist'
+      isLog:       !!row.isLog,
+      // Each row starts "mapped" with suggested values so the UI is productive; log
+      // topics (rosout / rcl_interfaces/msg/Log) instead default to blocklist when
+      // settings.autoBlocklistLogs is on. The operator can override any of this.
+      action:      row.blocklisted ? 'blocklist' : 'map',   // 'map' | 'skip' | 'blocklist'
       entityType:  (suggestions && suggestions.entityType) || row.entityType,
       entityId:    (suggestions && suggestions.entityId)   || row.entityId,
       attribute:   (suggestions && suggestions.attribute)  || row.attribute,

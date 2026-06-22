@@ -101,6 +101,7 @@ function collectSettings() {
     syncTimeout: Number($('#set-syncTimeout').value) || 0,
     outConfig:   $('#set-outConfig').value.trim(),
     outContext:  $('#set-outContext').value.trim(),
+    autoBlocklistLogs: $('#opt-blocklist-logs').checked,
   };
 }
 
@@ -173,8 +174,15 @@ function renderRow(kind, row, idx) {
   const tr = document.createElement('tr');
   tr.className = rowClass(row.action);
 
-  // DDS name + type
-  const tdName = el('td', 'dds-name'); tdName.textContent = row.ddsName;
+  // DDS name (+ log badge) + type
+  const tdName = el('td', 'dds-name');
+  tdName.textContent = row.ddsName;
+  if (row.isLog) {
+    const tag = el('span', 'log-badge');
+    tag.textContent = 'log';
+    tag.title = 'ROS 2 log topic — blocklisted by default';
+    tdName.append(' ', tag);
+  }
   const tdType = el('td', 'dds-type'); tdType.textContent = row.ddsTypeInfo || '—'; tdType.title = row.ddsTypeInfo || '';
 
   // action select
