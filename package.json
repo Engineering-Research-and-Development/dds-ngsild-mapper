@@ -18,5 +18,5 @@
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT"
+  "license": "LGPL-3.0-or-later"
 }
