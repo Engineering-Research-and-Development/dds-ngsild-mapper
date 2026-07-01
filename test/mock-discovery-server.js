@@ -7,7 +7,9 @@ const path = require('path');
 const { WebSocketServer } = require('ws');
 
 const PORT           = process.env.MOCK_PORT || 8080;
-const DISCOVERY_FILE = path.join(__dirname, 'discovery.json');
+const DISCOVERY_FILE = process.env.MOCK_DISCOVERY_FILE
+  ? path.resolve(process.env.MOCK_DISCOVERY_FILE)
+  : path.join(__dirname, 'discovery.json');
 
 // How the WebSocket endpoint emits the inventory:
 //   snapshot → one frame with the full { topics, services, actions } object
@@ -41,6 +43,16 @@ const server = http.createServer((req, res) => {
   res.end('not found\n');
 });
 
+// Build a streamed per-entry frame. Faithful to the DDS Enabler ws example: when an
+// entry carries `parts` (newer payload-placeholder format), the frame is exactly
+// { kind, name, parts } with no flat type fields; otherwise the legacy flat shape.
+function toFrame(kind, item) {
+  if (Array.isArray(item.parts)) {
+    return { kind, name: item.name, parts: item.parts };
+  }
+  return { kind, ...item };
+}
+
 // ─── WebSocket endpoint (same port, path /api/discovery) ─────────────────────────
 
 const wss = new WebSocketServer({ server, path: '/api/discovery' });
@@ -59,9 +71,9 @@ wss.on('connection', socket => {
 
   // events mode: stream one frame per entry, then close.
   const frames = [
-    ...discovery.topics.map(t   => ({ kind: 'topic',   ...t })),
-    ...discovery.services.map(s => ({ kind: 'service', ...s })),
-    ...discovery.actions.map(a  => ({ kind: 'action',  ...a })),
+    ...discovery.topics.map(t   => toFrame('topic',   t)),
+    ...discovery.services.map(s => toFrame('service', s)),
+    ...discovery.actions.map(a  => toFrame('action',  a)),
   ];
 
   let i = 0;

@@ -20,7 +20,11 @@
       "PowerShell($conns = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($conns\\) { $conns.OwningProcess | Select-Object -Unique | ForEach-Object { Write-Host \"Killing PID $_\"; Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } } else { Write-Host \"nothing on :3000\" })",
       "Bash(node src/index.js --input examples/discovery.json --auto --out-config test/out/cli-config.json --out-context test/out/cli-context.jsonld)",
       "Bash(node src/index.js --input examples/discovery.json --auto --keep-logs --out-config test/out/cli-keep.json --out-context test/out/cli-keep-ctx.jsonld)",
-      "Bash(rm -f test/out/cli-config.json test/out/cli-context.jsonld test/out/cli-keep.json test/out/cli-keep-ctx.jsonld)"
+      "Bash(rm -f test/out/cli-config.json test/out/cli-context.jsonld test/out/cli-keep.json test/out/cli-keep-ctx.jsonld)",
+      "Bash(npx --no-install playwright --version)",
+      "Bash(node -e 'require.resolve\\(\"puppeteer\"\\);console.log\\(\"  yes\"\\)')",
+      "Bash(ls \"/c/Program Files/Google/Chrome/Application/chrome.exe\")",
+      "Bash(ls \"/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe\")"
     ]
   }
 }

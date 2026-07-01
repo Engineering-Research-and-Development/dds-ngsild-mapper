@@ -80,6 +80,8 @@ keeping you in control of the modeling decisions.
   rest.
 - **Smart suggestions** — every discovered endpoint comes pre-filled with a sensible
   `entityId` / `entityType` / `attribute`; override any of them.
+- **Southbound payload previews** — when discovery provides them (WebSocket `parts`
+  frames), each endpoint shows the JSON placeholder(s) you'd `POST` to Orion-LD.
 - **Auto-blocklist of log noise** — ROS 2 log topics (`/rosout`,
   `rcl_interfaces/msg/Log`) are excluded from the DDS Enabler by default.
 - **Round-trip editing** — reload an existing `dds-config.json` + `@context`, merge fresh
@@ -299,7 +301,8 @@ The source is resolved in this precedence order: **CLI flag → `DDS_DISCOVERY_F
   full object, or **stream one entry per frame** (`{ "kind": "topic", "name": …, … }`).
   Streamed frames are accumulated until the stream goes quiet
   (`--ws-quiet` / `DDS_DISCOVERY_WS_QUIET_MS`) or the connection closes. A single
-  malformed frame is skipped, not fatal.
+  malformed frame is skipped, not fatal. Frames may also carry
+  [payload placeholders](#payload-placeholders-parts-websocket) (`parts`).
 
 ### Interactive mode
 
@@ -339,7 +342,9 @@ The browser UI is a four-step workflow:
    output paths (pre-filled from `.env`).
 3. **Mapping** — per-row action (`map` / `skip` / `blocklist`) with editable
    `entityType` / `entityId` / `attribute`, suggestion reset (↺), and bulk actions
-   (map all / skip all / blocklist all).
+   (map all / skip all / blocklist all). Endpoints discovered with
+   [payload placeholders](#payload-placeholders-parts-websocket) show a collapsible
+   **payload** preview (the southbound `POST` skeleton) under the DDS name.
 4. **Generate output** — live preview of both files, copy/download, and an optional
    "save to disk" that writes to the configured `out/` paths.
 
@@ -437,6 +442,39 @@ Over WebSocket the same data can arrive as individual frames instead:
 
 Each entry's `name` is required; everything else is optional. See
 [`examples/discovery.json`](examples/discovery.json) for a complete sample.
+
+### Payload placeholders (`parts`, WebSocket)
+
+Newer DDS Enabler discovery frames carry, per endpoint, one or more **payload
+placeholders**: the JSON skeleton(s) an operator would `POST` to Orion-LD to drive the
+endpoint **southbound**. In this shape the flat `typeName` / `requestType` / … fields are
+replaced by a `parts` array of `{ label, details }`:
+
+```json
+{ "kind": "topic",   "name": "rt/chatter",
+  "parts": [ { "label": "", "details": "{\"data\":\"\"}" } ] }
+
+{ "kind": "service", "name": "set_bool",
+  "parts": [ { "label": "Request", "details": "{\"data\":false}" },
+             { "label": "Reply",   "details": "{\"success\":false,\"message\":\"\"}" } ] }
+
+{ "kind": "action",  "name": "navigate_to_pose",
+  "parts": [ { "label": "Goal Request", "details": "{ … }" },
+             { "label": "Feedback",     "details": "{ … }" },
+             { "label": "Result Reply", "details": "{ … }" } ] }
+```
+
+- `details` is a **JSON string** (the skeleton), pretty-printed in the web UI. It may be
+  empty until the DDS type descriptor is known — shown as *"placeholder not yet
+  available"* and back-filled if a later frame resolves it.
+- Part **labels** follow the endpoint kind: a topic has one unlabelled part, a service has
+  `Request` / `Reply`, an action has `Goal Request` / `Feedback` / `Result Reply`.
+- The mapper accepts **both** shapes — flat type fields *or* `parts` — and surfaces the
+  placeholders under each row in the [Web UI](#web-ui).
+
+> **Note:** the DDS type name is **not transmitted** in this format, so type-derived
+> `entityType` suggestions fall back to name-based ones (`rt/cmd_vel` → `CmdVel`) and the
+> Type column is left empty. Log topics are still auto-blocklisted by name (`/rosout`).
 
 ---
 
@@ -571,7 +609,15 @@ On Windows, the helper script does both at once and writes to `test/out/`:
 ```
 
 The WebSocket mode can be tuned with `MOCK_WS_MODE` (`events` or `snapshot`) and
-`MOCK_WS_DELAY_MS`.
+`MOCK_WS_DELAY_MS`. Point the mock at a different inventory with `MOCK_DISCOVERY_FILE`; if
+that file's entries carry `parts`, the mock streams them as
+[payload-placeholder frames](#payload-placeholders-parts-websocket) — see
+[`test/discovery-parts.json`](test/discovery-parts.json):
+
+```bash
+MOCK_DISCOVERY_FILE=test/discovery-parts.json node test/mock-discovery-server.js
+node src/index.js --discovery-url ws://localhost:8080/api/discovery --auto
+```
 
 ---
 
@@ -596,7 +642,8 @@ dds-ngsild-mapper/
 │   └── styles.css            # web UI styling
 ├── test/
 │   ├── mock-discovery-server.js  # HTTP + WS fixture backend
-│   ├── discovery.json            # test inventory
+│   ├── discovery.json            # test inventory (flat type fields)
+│   ├── discovery-parts.json      # test inventory (WebSocket payload placeholders)
 │   └── run.ps1                   # Windows smoke-test runner
 ├── examples/
 │   └── discovery.json        # sample discovery inventory

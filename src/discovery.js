@@ -291,6 +291,7 @@ function coerceTopic(t) {
     name:     t.name,
     typeName: t.typeName || t.type || t.type_name || '',
     qos:      t.qos || null,
+    payloads: extractPayloads(t),
   };
 }
 
@@ -299,6 +300,7 @@ function coerceService(s) {
     name:        s.name,
     requestType: s.requestType || s.request_type || '',
     replyType:   s.replyType   || s.reply_type   || '',
+    payloads:    extractPayloads(s),
   };
 }
 
@@ -308,12 +310,47 @@ function coerceAction(a) {
     goalType:     a.goalType     || a.goal_type     || '',
     feedbackType: a.feedbackType || a.feedback_type || '',
     resultType:   a.resultType   || a.result_type   || '',
+    payloads:     extractPayloads(a),
   };
+}
+
+// ─── Payload placeholders (the `parts` array) ───────────────────────────────────
+//
+// Newer DDS Enabler discovery frames carry, per endpoint, one or more "parts": the
+// JSON payload placeholder(s) an operator would POST to Orion-LD to drive the endpoint
+// southbound. Each part is { label, details }, where `details` is a JSON *string* (the
+// skeleton, e.g. '{"data":""}') and starts empty until the DDS type descriptor is known.
+//   topic   → 1 part,  label ""
+//   service → 2 parts, labels "Request" / "Reply"
+//   action  → 3 parts, labels "Goal Request" / "Feedback" / "Result Reply"
+// The DDS type name itself is NOT carried on the wire in this format, so type-derived
+// entityType suggestions fall back to the name-based ones for these endpoints.
+function extractPayloads(item) {
+  if (!item || !Array.isArray(item.parts) || item.parts.length === 0) return null;
+  const parts = item.parts
+    .filter(p => p && typeof p === 'object')
+    .map(p => ({
+      label:   typeof p.label === 'string' ? p.label : '',
+      details: typeof p.details === 'string'
+        ? p.details
+        : (p.details != null ? JSON.stringify(p.details, null, 2) : ''),
+    }));
+  return parts.length ? parts : null;
+}
+
+function hasFilledPayloads(payloads) {
+  return Array.isArray(payloads) && payloads.some(p => p.details && p.details.trim());
 }
 
 function pushUnique(arr, item) {
   if (!item || !item.name) return;
-  if (!arr.some(x => x.name === item.name)) arr.push(item);
+  const existing = arr.find(x => x.name === item.name);
+  if (!existing) { arr.push(item); return; }
+  // A later frame for the same endpoint may carry now-resolved payload placeholders
+  // (details start empty until the DDS type is known) — upgrade the stored item in place.
+  if (!hasFilledPayloads(existing.payloads) && hasFilledPayloads(item.payloads)) {
+    existing.payloads = item.payloads;
+  }
 }
 
 // ─── Normalisation ────────────────────────────────────────────────────────────
@@ -326,11 +363,15 @@ function normalize(raw) {
   };
 }
 
+// The WS transport coerces each frame before this runs, so `payloads` may already be
+// present (and `parts` gone); honour it to keep normalize idempotent, otherwise derive
+// from a raw `parts` array (file / HTTP / pasted snapshot).
 function normalTopic(t) {
   return {
     name:     requireString(t, 'name'),
     typeName: t.typeName || t.type || t.type_name || '',
     qos:      t.qos || null,
+    payloads: t.payloads || extractPayloads(t),
   };
 }
 
@@ -339,6 +380,7 @@ function normalService(s) {
     name:        requireString(s, 'name'),
     requestType: s.requestType || s.request_type || '',
     replyType:   s.replyType   || s.reply_type   || '',
+    payloads:    s.payloads || extractPayloads(s),
   };
 }
 
@@ -348,6 +390,7 @@ function normalAction(a) {
     goalType:     a.goalType     || a.goal_type     || '',
     feedbackType: a.feedbackType || a.feedback_type || '',
     resultType:   a.resultType   || a.result_type   || '',
+    payloads:     a.payloads || extractPayloads(a),
   };
 }
 

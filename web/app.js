@@ -176,12 +176,18 @@ function renderRow(kind, row, idx) {
 
   // DDS name (+ log badge) + type
   const tdName = el('td', 'dds-name');
-  tdName.textContent = row.ddsName;
+  const nameLine = el('div', 'dds-name-line');
+  nameLine.textContent = row.ddsName;
   if (row.isLog) {
     const tag = el('span', 'log-badge');
     tag.textContent = 'log';
     tag.title = 'ROS 2 log topic — blocklisted by default';
-    tdName.append(' ', tag);
+    nameLine.append(' ', tag);
+  }
+  tdName.appendChild(nameLine);
+  // Southbound POST payload placeholder(s), when discovery provided them (WS `parts`).
+  if (Array.isArray(row.payloads) && row.payloads.length) {
+    tdName.appendChild(renderPayloads(row.payloads));
   }
   const tdType = el('td', 'dds-type'); tdType.textContent = row.ddsTypeInfo || '—'; tdType.title = row.ddsTypeInfo || '';
 
@@ -237,6 +243,39 @@ function fieldCell(row, field, kind, idx) {
 
 function rowClass(action) {
   return action === 'skip' ? 'row-skip' : action === 'blocklist' ? 'row-blocklist' : '';
+}
+
+// Collapsible preview of the southbound POST payload placeholder(s) for an endpoint.
+// Each part is { label, details }; a topic has one unlabelled part, a service two
+// ("Request"/"Reply"), an action three ("Goal Request"/"Feedback"/"Result Reply").
+function renderPayloads(payloads) {
+  const details = el('details', 'payloads');
+  const summary = document.createElement('summary');
+  summary.textContent = payloads.length > 1 ? `payload · ${payloads.length} parts` : 'payload';
+  details.appendChild(summary);
+
+  const wrap = el('div', 'payload-parts');
+  for (const part of payloads) {
+    const box = el('div', 'payload-part');
+    if (part.label) {
+      const lab = el('span', 'payload-label');
+      lab.textContent = part.label;
+      box.appendChild(lab);
+    }
+    const pre = document.createElement('pre');
+    pre.textContent = formatDetails(part.details);
+    box.appendChild(pre);
+    wrap.appendChild(box);
+  }
+  details.appendChild(wrap);
+  return details;
+}
+
+// Mirror the DDS Enabler dashboard: pretty-print the JSON placeholder, raw text fallback.
+function formatDetails(details) {
+  if (details == null || details === '') return '(placeholder not yet available)';
+  try { return JSON.stringify(JSON.parse(details), null, 2); }
+  catch (e) { return details; }
 }
 
 // ─── Generate ────────────────────────────────────────────────────────────────────

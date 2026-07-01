@@ -1,0 +1,53 @@
+{
+  "topics": [
+    {
+      "name": "rt/chatter",
+      "parts": [
+        { "label": "", "details": "{\"data\":\"\"}" }
+      ]
+    },
+    {
+      "name": "rt/cmd_vel",
+      "parts": [
+        { "label": "", "details": "{\"linear\":{\"x\":0.0,\"y\":0.0,\"z\":0.0},\"angular\":{\"x\":0.0,\"y\":0.0,\"z\":0.0}}" }
+      ]
+    },
+    {
+      "name": "rt/battery_state",
+      "parts": [
+        { "label": "", "details": "{\"voltage\":0.0,\"percentage\":0.0,\"power_supply_status\":0}" }
+      ]
+    },
+    {
+      "name": "rt/rosout",
+      "parts": [
+        { "label": "", "details": "{\"level\":0,\"name\":\"\",\"msg\":\"\",\"file\":\"\",\"function\":\"\",\"line\":0}" }
+      ]
+    },
+    {
+      "name": "rt/pending_type",
+      "parts": [
+        { "label": "", "details": "" }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "name": "set_bool",
+      "parts": [
+        { "label": "Request", "details": "{\"data\":false}" },
+        { "label": "Reply", "details": "{\"success\":false,\"message\":\"\"}" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "navigate_to_pose",
+      "parts": [
+        { "label": "Goal Request", "details": "{\"pose\":{\"header\":{\"frame_id\":\"\"},\"pose\":{\"position\":{\"x\":0.0,\"y\":0.0,\"z\":0.0},\"orientation\":{\"x\":0.0,\"y\":0.0,\"z\":0.0,\"w\":1.0}}}}" },
+        { "label": "Feedback", "details": "{\"distance_remaining\":0.0}" },
+        { "label": "Result Reply", "details": "{\"result\":{}}" }
+      ]
+    }
+  ]
+}

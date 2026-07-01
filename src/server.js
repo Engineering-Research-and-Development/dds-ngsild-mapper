@@ -55,6 +55,9 @@ function buildRowsForUi(discovery, settings) {
       entityId:    (suggestions && suggestions.entityId)   || row.entityId,
       attribute:   (suggestions && suggestions.attribute)  || row.attribute,
       suggestions: suggestions || { entityType: row.entityType, entityId: row.entityId, attribute: row.attribute },
+      // Southbound POST payload placeholder(s) for this endpoint (display-only), when the
+      // discovery source provided them (newer WS `parts` frames). Null otherwise.
+      payloads:    item && item.payloads ? item.payloads : null,
     };
   });
 

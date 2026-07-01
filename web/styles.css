@@ -160,6 +160,23 @@ td.dds-name { font-family: ui-monospace, monospace; font-size: 12.5px; }
 td.dds-type { font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--muted); max-width: 220px; }
 tr.row-skip td:not(.col-action), tr.row-blocklist td:not(.col-action) { opacity: .42; }
 
+/* ── southbound payload placeholders (parts) ── */
+details.payloads { margin-top: 6px; }
+details.payloads > summary {
+  cursor: pointer; color: var(--accent); font-family: inherit; font-size: 10px;
+  text-transform: uppercase; letter-spacing: .5px; list-style: none; width: max-content;
+}
+details.payloads > summary::-webkit-details-marker { display: none; }
+details.payloads > summary::before { content: "▸ "; }
+details.payloads[open] > summary::before { content: "▾ "; }
+.payload-parts { margin: 6px 0 2px; display: flex; flex-direction: column; gap: 8px; }
+.payload-part { border: 1px solid var(--line); border-radius: 6px; background: var(--bg); overflow: hidden; }
+.payload-label {
+  display: block; padding: 4px 8px; border-bottom: 1px solid var(--line);
+  color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
+}
+.payload-part pre { max-height: 180px; font-size: 11px; }
+
 td input { width: 100%; }
 .field-wrap { display: flex; align-items: center; gap: 4px; }
 .reset-btn { padding: 3px 7px; line-height: 1; color: var(--accent); border-color: transparent; background: transparent; }
