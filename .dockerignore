@@ -15,6 +15,7 @@ out/
 .github/
 .claude/
 test/
+docs/
 *.md
 !README.md
 

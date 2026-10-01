@@ -1,4 +1,8 @@
-# DDS → NGSI-LD Mapper
+<p align="center">
+  <img src="docs/logo.png" alt="DDS NGSI-LD Mapper" width="180" />
+</p>
+
+<h1 align="center">DDS → NGSI-LD Mapper</h1>
 
 > Generate the `dds-config.json` and `@context` (`dds-context.jsonld`) files that
 > [Orion-LD](https://github.com/FIWARE/context.Orion-LD) needs to bridge a **DDS / ROS 2**
@@ -755,6 +759,8 @@ dds-ngsild-mapper/
 │   └── run.ps1                   # Windows smoke-test runner
 ├── examples/
 │   └── discovery.json        # sample discovery inventory
+├── docs/
+│   └── logo.png              # project logo (README header)
 ├── out/                      # generated output (git-ignored)
 ├── .cache/sdm/               # Smart Data Models cache (git-ignored)
 ├── .env                      # configuration (git-ignored)
