@@ -111,9 +111,101 @@
       <div id="tables"></div>
     </section>
 
-    <!-- ── 4. Generate & output ───────────────────────────────────────────── -->
+    <!-- ── 4. Smart Data Models playground ────────────────────────────────── -->
+    <section class="card" id="sdm-card">
+      <h2>4 · Smart Data Models <span class="pill">playground</span></h2>
+      <p class="hint">
+        Try a discovered endpoint against a published
+        <a href="https://github.com/smart-data-models" target="_blank" rel="noopener">Smart Data Model</a>
+        instead of inventing a private <code>entityType</code>. Choosing a model fills the mapping
+        table with real NGSI-LD type and attribute names, and the generated <code>@context</code>
+        reuses that model&rsquo;s own IRIs.
+      </p>
+
+      <div class="sdm-top">
+        <!-- catalog -->
+        <div class="sdm-pane">
+          <div class="sdm-search">
+            <input type="search" id="sdm-q" placeholder="Search data models: device, robot, weather…" />
+            <select id="sdm-domain"><option value="">All domains</option></select>
+          </div>
+          <div class="sdm-list" id="sdm-results"></div>
+          <div class="sdm-meta" id="sdm-catalog-meta">Loading catalog…</div>
+          <details class="sdm-paste">
+            <summary>Paste a schema instead (offline, or a private model)</summary>
+            <textarea id="sdm-schema" rows="4" placeholder='{ "title": "MyModel", "properties": { … } }'></textarea>
+            <button class="ghost small" id="sdm-load-schema">Load pasted schema</button>
+          </details>
+        </div>
+
+        <!-- selected model -->
+        <div class="sdm-pane">
+          <div id="sdm-model-head" class="sdm-empty">Pick a data model to inspect its attributes.</div>
+          <input type="search" id="sdm-attr-filter" class="hidden" placeholder="Filter attributes…" />
+          <div class="sdm-list" id="sdm-attrs"></div>
+        </div>
+      </div>
+
+      <!-- mapping bench -->
+      <div class="sdm-bench hidden" id="sdm-bench">
+        <div class="sdm-bench-head">
+          <div class="sdm-tabs" role="tablist">
+            <button class="tab active" data-sdm-tab="endpoints">Endpoints &rarr; attributes</button>
+            <button class="tab" data-sdm-tab="fields">Payload fields &rarr; attributes</button>
+          </div>
+          <label class="sdm-target">Target entityId
+            <input type="text" id="sdm-entity-id" />
+          </label>
+        </div>
+
+        <div class="sdm-tabpane" data-sdm-pane="endpoints">
+          <p class="hint">
+            One DDS endpoint &rarr; one attribute of one NGSI-LD entity &mdash; the only shape
+            <code>dds-config.json</code> can express, so these choices can be applied to the mapping table.
+          </p>
+          <div class="actions-row">
+            <button class="ghost" id="sdm-rematch">Suggest matches</button>
+            <button class="primary" id="sdm-apply">Apply to mapping</button>
+            <label class="inline-check">
+              <input type="checkbox" id="sdm-apply-context" checked /> also set the <code>@context</code> URI
+            </label>
+            <span id="sdm-apply-status" class="status"></span>
+          </div>
+          <div id="sdm-endpoint-table"></div>
+        </div>
+
+        <div class="sdm-tabpane hidden" data-sdm-pane="fields">
+          <p class="hint">
+            A what-if view inside one payload. The DDS bridge moves a whole payload into a single
+            attribute, so this breakdown is a design aid &mdash; it is <strong>not</strong> written to
+            <code>dds-config.json</code>; download it as a side-car instead.
+          </p>
+          <div class="actions-row">
+            <label class="sdm-target">Endpoint
+              <select id="sdm-endpoint-pick"></select>
+            </label>
+            <button class="ghost small" data-download-sdm="mapping">Download side-car</button>
+          </div>
+          <div id="sdm-field-table"></div>
+        </div>
+
+        <div class="sdm-preview">
+          <div class="output-head">
+            <h3>NGSI-LD entity preview</h3>
+            <div>
+              <button class="ghost small" data-copy-sdm="entity">Copy</button>
+              <button class="ghost small" data-download-sdm="entity">Download</button>
+            </div>
+          </div>
+          <pre id="sdm-entity">—</pre>
+          <div id="sdm-report" class="sdm-report"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 5. Generate & output ───────────────────────────────────────────── -->
     <section class="card hidden" id="output-card">
-      <h2>4 · Generate output</h2>
+      <h2>5 · Generate output</h2>
       <div class="actions-row">
         <button id="btn-generate" class="primary">Generate preview</button>
         <label class="inline-check"><input type="checkbox" id="opt-write" /> Also save to disk (out/)</label>

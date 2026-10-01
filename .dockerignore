@@ -1,0 +1,26 @@
+# Installed in the image by `npm ci` — never copy the host's tree.
+node_modules/
+
+# Generated output and caches belong to the host / mounted volumes.
+out/
+.cache/
+
+# Deployment-specific secrets: pass env vars at runtime instead.
+.env
+.env.local
+.env.*.local
+
+# Not needed at runtime.
+.git/
+.github/
+.claude/
+test/
+*.md
+!README.md
+
+# OS / editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

@@ -80,6 +80,11 @@ keeping you in control of the modeling decisions.
   rest.
 - **Smart suggestions** — every discovered endpoint comes pre-filled with a sensible
   `entityId` / `entityType` / `attribute`; override any of them.
+- **Smart Data Models playground** — search the
+  [Smart Data Models](https://github.com/smart-data-models) catalog (1 100+ published
+  models), try your DDS endpoints against a real one, and apply the result so the
+  generated `@context` reuses that model's own IRIs instead of a private `iriBase`.
+  Catalog and schemas are cached on disk and keep working offline.
 - **Southbound payload previews** — when discovery provides them (WebSocket `parts`
   frames), each endpoint shows the JSON placeholder(s) you'd `POST` to Orion-LD.
 - **Auto-blocklist of log noise** — ROS 2 log topics (`/rosout`,
@@ -91,7 +96,8 @@ keeping you in control of the modeling decisions.
   `entityId + attribute`.
 - **Lightweight** — runs on plain Node.js ≥ 18 with only `dotenv` and `ws`; the
   HTTP layer uses Node built-ins.
-- **Docker-ready** — a single container that writes its output to a mounted volume.
+- **Docker-ready** — a single container that runs either the CLI (writing its output to a
+  mounted volume) or the web UI.
 
 ---
 
@@ -112,6 +118,8 @@ flowchart LR
     M -->|--auto| AUTO[Apply defaults<br/>map everything]
     M -->|interactive| CLI[Terminal wizard<br/>map / skip / blocklist]
     M -->|web| WEB[Browser UI<br/>edit + preview]
+
+    SDM[(Smart Data Models<br/>catalog · cached)] -.->|align type / attribute / IRIs| WEB
 
     AUTO --> V[Validate]
     CLI --> V
@@ -158,7 +166,9 @@ same core logic.
         ├──── src/suggest.js   ───────  ROS 2 type-aware entity suggestions (web)
         ├──── src/interactive.js ─────  terminal wizard (CLI only)
         ├──── src/validator.js ───────  URI / IRI-safety / collision checks
-        └──── src/files.js     ───────  round-trip load + serialize outputs
+        ├──── src/files.js     ───────  round-trip load + serialize outputs
+        ├──── src/sdm.js       ───────  Smart Data Models catalog + cache (web only)
+        └──── src/sdm-match.js ───────  DDS ↔ SDM attribute matching (web only)
 ```
 
 | Module | Responsibility |
@@ -171,7 +181,9 @@ same core logic.
 | [`src/interactive.js`](src/interactive.js) | The terminal wizard: per-entry `map / edit / defaults / skip / blocklist / quit` loop. |
 | [`src/validator.js`](src/validator.js) | Enforces the output rules (valid URI, IRI-safe names, no collisions). |
 | [`src/files.js`](src/files.js) | Loads an existing config + `@context` for round-trip editing and **serializes** the final state into the two output files. |
-| [`src/server.js`](src/server.js) | A dependency-free HTTP server hosting the web UI and a small JSON API (`/api/config`, `/api/discovery`, `/api/generate`). |
+| [`src/sdm.js`](src/sdm.js) | Smart Data Models client: catalog search, JSON-Schema flattening (`$ref`/`allOf`), short-name → IRI resolution from each repo's `@context`, NGSI-LD preview. Caches every document in memory and on disk. |
+| [`src/sdm-match.js`](src/sdm-match.js) | Heuristic matching between DDS endpoints / payload fields and SDM attributes (ROS-flavoured synonyms + JSON-type compatibility), plus the compatibility report. |
+| [`src/server.js`](src/server.js) | A dependency-free HTTP server hosting the web UI and a small JSON API (`/api/config`, `/api/discovery`, `/api/generate`, `/api/sdm/*`). |
 | [`web/`](web/) | Static frontend (`index.html`, `app.js`, `styles.css`). |
 | [`test/`](test/) | A mock DDS discovery server (HTTP + WebSocket) and a PowerShell smoke-test runner. |
 
@@ -234,6 +246,13 @@ Copy the provided `.env` and adjust:
 | `WEB_PORT` | `3000` | Port for the web UI (`npm run web`). |
 | `MAPPER_MODE` | `interactive` | `auto` maps everything with defaults; `interactive` prompts per entry. |
 | `AUTO_BLOCKLIST_LOGS` | `true` | Auto-blocklist ROS 2 log topics (`/rosout`, `rcl_interfaces/msg/Log`). |
+| `SDM_ENABLED` | `true` | Enable the Smart Data Models playground and the `/api/sdm/*` routes. Set to `false` on air-gapped deployments. |
+| `SDM_CACHE_DIR` | `.cache/sdm` | Where the catalog, schemas and `@context` documents are cached (git-ignored). |
+| `SDM_CACHE_TTL_MS` | `86400000` | Cache lifetime (24 h). An expired entry is still served if the fetch fails. |
+| `SDM_TIMEOUT_MS` | `15000` | Timeout for a single Smart Data Models fetch. |
+| `SDM_RAW_BASE` | `https://raw.githubusercontent.com/smart-data-models` | Override only to pin a fork of the Smart Data Models repositories. |
+| `SDM_BRANCH` | `master` | Branch read from those repositories. |
+| `SDM_LIST_URL` | *(official list)* | Override the `official_list_data_models.json` URL. |
 
 > `.env`, `.env.local` and `.env.*.local` are git-ignored — keep deployment-specific
 > values out of version control.
@@ -334,7 +353,7 @@ into the same NGSI-LD entity (each as a different attribute).
 npm run web   # → http://localhost:3000
 ```
 
-The browser UI is a four-step workflow:
+The browser UI is a five-step workflow:
 
 1. **Discovery source** — backend URL, file upload, or pasted JSON; choose
    interactive/automatic and toggle log auto-blocklisting.
@@ -345,7 +364,9 @@ The browser UI is a four-step workflow:
    (map all / skip all / blocklist all). Endpoints discovered with
    [payload placeholders](#payload-placeholders-parts-websocket) show a collapsible
    **payload** preview (the southbound `POST` skeleton) under the DDS name.
-4. **Generate output** — live preview of both files, copy/download, and an optional
+4. **Smart Data Models** — align the mapping to a published data model instead of
+   inventing one (see [below](#smart-data-models-playground)).
+5. **Generate output** — live preview of both files, copy/download, and an optional
    "save to disk" that writes to the configured `out/` paths.
 
 It's backed by a tiny JSON API:
@@ -355,6 +376,72 @@ It's backed by a tiny JSON API:
 | `/api/config` | `GET` | Returns the default settings from `.env` to pre-fill the form. |
 | `/api/discovery` | `POST` | Loads discovery from `{ data }`, `{ url }`, or `{ filePath }` and returns rows + counts. |
 | `/api/generate` | `POST` | Validates the edited rows and returns the config + `@context` (optionally writing them to disk). |
+| `/api/sdm/catalog` | `GET` | Searches the Smart Data Models catalog (`?q=`, `?domain=`, `?limit=`). |
+| `/api/sdm/model` | `GET`/`POST` | Loads one model's flattened attributes + IRIs (`?repo=&model=`), or `POST { schema }` for a pasted one. |
+| `/api/sdm/match` | `POST` | Suggests attributes for whole endpoints (`mode: "endpoints"`) or for payload fields (`mode: "fields"`). |
+| `/api/sdm/preview` | `POST` | Returns the normalized NGSI-LD entity the current assignments would produce, plus a compatibility report. |
+
+### Smart Data Models playground
+
+Section 4 of the web UI connects the mapper to the
+[Smart Data Models](https://github.com/smart-data-models) initiative, so a DDS endpoint
+can land on a *published* NGSI-LD type instead of a locally invented one.
+
+**Browse and inspect.** Search the official catalog (1 100+ models across 80+ subject
+repositories) or filter by domain, then pick a model to see its flattened attribute list —
+NGSI-LD kind (`Property` / `Relationship` / `GeoProperty`), JSON type, units, and which
+attributes are required. The JSON Schema is resolved through its `$ref`/`allOf` chain,
+including the shared `common-schema.json` and each repository's own definitions file.
+
+**Two mapping directions.**
+
+- **Endpoints → attributes** is the shape `dds-config.json` can express: one DDS endpoint
+  fills one attribute of one NGSI-LD entity. Pick a target `entityId` (e.g.
+  `urn:ngsi-ld:Device:amr-01`), review the suggested attribute per endpoint, then
+  **Apply to mapping** — every chosen row is re-typed in section 3 and tagged `SDM`.
+- **Payload fields → attributes** breaks one payload placeholder down field by field.
+  The DDS bridge moves a *whole* payload into a single attribute, so this view is a design
+  aid only; download it as a `sdm-mapping.json` side-car rather than expecting it in the
+  generated config.
+
+Suggestions come from name similarity after expanding ROS-flavoured abbreviations
+(`batt` → `batteryLevel`, `pose` → `location`, `temp` → `temperature`, …) combined with
+JSON-type compatibility, assigned greedily so no attribute is proposed twice. Every
+suggestion is a `<select>` you can override.
+
+**What it changes in the output.** Applying a model rewrites `entityType`, `entityId` and
+`attribute` for the chosen rows, optionally sets the `@context` URI to that repository's
+`context.jsonld`, and — most importantly — makes the generated `dds-context.jsonld` reuse
+the model's **real IRIs** rather than minting `iriBase + name`. Those IRIs cannot be
+guessed, so they are read from the repository's own `@context`:
+
+```jsonc
+{
+  "@context": {
+    "Device":       "https://smartdatamodels.org/dataModel.Device/Device",
+    "batteryLevel": "https://smartdatamodels.org/dataModel.Device/batteryLevel",
+    "location":     "https://uri.etsi.org/ngsi-ld/location",   // NGSI-LD core term
+    "cmd_vel":      "https://example.org/dds/cmd_vel"           // not aligned → iriBase
+  }
+}
+```
+
+Rows you never align keep their private `iriBase` expansion, so adopting Smart Data Models
+is incremental.
+
+**Caching and offline use.** The catalog is pulled once when the server starts and every
+schema/`@context` is cached in memory and under `SDM_CACHE_DIR` (`.cache/sdm`, git-ignored).
+Within the TTL nothing is re-fetched; past it, a failed fetch still serves the cached copy,
+so the playground keeps working without connectivity (the UI labels it *stale*). Only
+`raw.githubusercontent.com`, `smart-data-models.github.io` and `smartdatamodels.org` are
+ever contacted. With no cache and no network, paste a schema by hand instead — the same
+path also accepts private, organisation-specific models. Set `SDM_ENABLED=false` to remove
+the section and its routes entirely.
+
+> **Scope note.** The NGSI-LD preview shows the entity your choices would produce, and the
+> compatibility report flags type mismatches and still-empty required attributes. It does
+> **not** transform payloads at runtime — the DDS Enabler publishes what the robot
+> publishes; the playground only helps you name and type it the way the ecosystem expects.
 
 ### Round-trip editing
 
@@ -394,6 +481,21 @@ docker run --rm \
   -v "$(pwd)/out:/app/out" \
   dds-ngsi-mapper --input examples/discovery.json
 ```
+
+The image's entry point is the CLI. To run the **web UI** (and with it the
+[Smart Data Models playground](#smart-data-models-playground)), override it and publish
+the port:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -v "$(pwd)/out:/app/out" \
+  -v "$(pwd)/.cache:/app/.cache" \
+  --entrypoint node dds-ngsi-mapper src/server.js
+```
+
+Mounting `.cache` is optional — it just lets the Smart Data Models catalog survive
+container restarts instead of being re-fetched on each start. In a network-isolated
+deployment add `-e SDM_ENABLED=false`.
 
 > Docker runs are best suited to `MAPPER_MODE=auto` (or `--auto`), since interactive mode
 > needs a TTY.
@@ -526,6 +628,10 @@ above into a full IRI, using `NGSI_IRI_BASE`:
 }
 ```
 
+Rows aligned in the [Smart Data Models playground](#smart-data-models-playground) are the
+exception: they expand to that model's published IRIs instead of `NGSI_IRI_BASE`, and the
+two kinds can coexist in one file.
+
 Point Orion-LD at both files:
 
 ```bash
@@ -635,6 +741,8 @@ dds-ngsild-mapper/
 │   ├── interactive.js        # terminal wizard
 │   ├── validator.js          # URI / IRI-safety / collision checks
 │   ├── files.js              # round-trip load + output serialization
+│   ├── sdm.js                # Smart Data Models catalog, schemas, cache
+│   ├── sdm-match.js          # DDS ↔ SDM attribute matching heuristics
 │   └── server.js             # web UI HTTP server + JSON API
 ├── web/
 │   ├── index.html            # web UI markup
@@ -648,8 +756,10 @@ dds-ngsild-mapper/
 ├── examples/
 │   └── discovery.json        # sample discovery inventory
 ├── out/                      # generated output (git-ignored)
+├── .cache/sdm/               # Smart Data Models cache (git-ignored)
 ├── .env                      # configuration (git-ignored)
 ├── Dockerfile
+├── .dockerignore
 └── package.json
 ```
 

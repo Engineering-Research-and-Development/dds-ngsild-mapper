@@ -4,6 +4,9 @@ node_modules/
 # Generated output files
 out/
 
+# Smart Data Models catalog/schema cache (SDM_CACHE_DIR)
+.cache/
+
 # Environment — contains deployment-specific config; never commit real values.
 # Copy .env to .env.local for local overrides, or set vars directly in CI/Docker.
 .env

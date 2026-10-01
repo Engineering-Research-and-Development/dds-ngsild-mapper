@@ -76,11 +76,14 @@ function buildOutputObjects(state, settings) {
     entry.attribute = row.attribute;
     target[row.ddsName] = entry;
 
-    // Collect @context terms (short names → IRIs)
+    // Collect @context terms (short names → IRIs). A row aligned to a published Smart
+    // Data Model carries the IRIs that model's own @context declares — reusing them
+    // keeps the entity interoperable instead of minting a private iriBase expansion.
+    const sdm = row.sdm || {};
     if (entry.entityType) {
-      contextTerms[entry.entityType] = settings.iriBase + urlSafe(entry.entityType);
+      contextTerms[entry.entityType] = sdm.typeIri || settings.iriBase + urlSafe(entry.entityType);
     }
-    contextTerms[entry.attribute] = settings.iriBase + urlSafe(entry.attribute);
+    contextTerms[entry.attribute] = sdm.attributeIri || settings.iriBase + urlSafe(entry.attribute);
   }
 
   for (const row of state.rows.topics)   { if (row.mapped) addRow(ngsildTopics,   row); }

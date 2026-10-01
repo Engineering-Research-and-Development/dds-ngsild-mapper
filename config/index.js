@@ -41,6 +41,19 @@ module.exports = {
     contextFile: process.env.OUTPUT_CONTEXT_FILE        || 'out/dds-context.jsonld',
   },
 
+  // Smart Data Models catalog (src/sdm.js — powers the web UI playground)
+  sdm: {
+    enabled:    process.env.SDM_ENABLED !== 'false',
+    rawBase:    process.env.SDM_RAW_BASE
+                  || 'https://raw.githubusercontent.com/smart-data-models',
+    branch:     process.env.SDM_BRANCH                  || 'master',
+    listUrl:    process.env.SDM_LIST_URL
+                  || 'https://raw.githubusercontent.com/smart-data-models/data-models/master/specs/AllSubjects/official_list_data_models.json',
+    cacheDir:   process.env.SDM_CACHE_DIR               || '.cache/sdm',
+    cacheTtlMs: Number(process.env.SDM_CACHE_TTL_MS)    || 24 * 60 * 60 * 1000,
+    timeoutMs:  Number(process.env.SDM_TIMEOUT_MS)      || 15000,
+  },
+
   // Web UI (src/server.js)
   web: {
     port: Number(process.env.WEB_PORT)                  || 3000,
